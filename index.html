@@ -176,6 +176,20 @@
         <p class="import-hint">כל שורה או פסיק = מוצר אחד. הוסף מספר אחרי השם לכמות.</p>
         <div id="importPreview" class="import-preview" hidden></div>
         <button class="primary-button import-go-btn" id="importFromTextBtn" type="button">📥 יבא מוצרים</button>
+
+        <div class="or-divider"><span>או</span></div>
+
+        <!-- QR Scanner -->
+        <div class="qr-scanner-area">
+          <button class="secondary-button scan-qr-btn" id="scanQrBtn" type="button">📷 סרוק קוד QR מהמצלמה</button>
+          <div id="qrScanWrapper" class="qr-scan-wrapper" hidden>
+            <video id="qrVideo" class="qr-video" playsinline muted></video>
+            <canvas id="qrCanvas" hidden></canvas>
+            <div class="qr-aim-box" aria-hidden="true"></div>
+            <p class="qr-hint-text">כוון את המצלמה לקוד QR</p>
+            <button class="stop-scan-btn" id="stopScanBtn" type="button">✕ עצור</button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -198,6 +212,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>

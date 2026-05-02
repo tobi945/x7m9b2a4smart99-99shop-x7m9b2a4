@@ -1064,6 +1064,113 @@ body.focus-mode .whatsapp-fab {
   color: #fff;
 }
 
+/* ── מפריד "או" ───────────────────────────────────────────────── */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ── אזור סריקת QR ────────────────────────────────────────────── */
+.qr-scanner-area {
+  display: grid;
+  gap: 10px;
+}
+
+.scan-qr-btn { width: 100%; }
+
+.qr-scan-wrapper {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 1;
+  max-height: 340px;
+}
+
+.qr-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* מסגרת כוונון */
+.qr-aim-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 58%;
+  aspect-ratio: 1;
+  border: 3px solid var(--primary);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.42);
+}
+
+/* קרנות מסגרת */
+.qr-aim-box::before,
+.qr-aim-box::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: #fff;
+  border-style: solid;
+}
+
+.qr-aim-box::before {
+  top: -3px; right: -3px;
+  border-width: 3px 3px 0 0;
+  border-radius: 0 6px 0 0;
+}
+
+.qr-aim-box::after {
+  bottom: -3px; left: -3px;
+  border-width: 0 0 3px 3px;
+  border-radius: 0 0 6px 0;
+}
+
+.qr-hint-text {
+  position: absolute;
+  bottom: 46px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  margin: 0;
+  pointer-events: none;
+}
+
+.stop-scan-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #18211c;
+  font-weight: 800;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
 /* Dark mode — Chapter 4 additions */
 @media (prefers-color-scheme: dark) {
   .link-input     { background: #1a2420; color: var(--muted); }

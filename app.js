@@ -48,6 +48,8 @@ class AppManager {
     this.wakeLock            = null;
     this._swipeTouch         = null;   // { item, inner, startX, startY, lastX, tracking }
     this._pendingImport      = null;   // products decoded from incoming magic link
+    this._scanStream         = null;   // MediaStream from camera
+    this._scanActive         = false;  // QR scan loop running
 
     this.cacheDom();
     this.loadData();
@@ -94,6 +96,9 @@ class AppManager {
       importPreview:  document.getElementById('importPreview'),
       incomingBanner: document.getElementById('incomingBanner'),
       incomingCount:  document.getElementById('incomingCount'),
+      qrScanWrapper:  document.getElementById('qrScanWrapper'),
+      qrVideo:        document.getElementById('qrVideo'),
+      qrCanvas:       document.getElementById('qrCanvas'),
     };
   }
 
@@ -624,6 +629,8 @@ class AppManager {
     document.getElementById('importFromTextBtn').addEventListener('click',    () => this.handleImportFromText());
     document.getElementById('incomingAcceptBtn').addEventListener('click',    () => this.acceptIncomingLink());
     document.getElementById('incomingDenyBtn').addEventListener('click',      () => this.dismissIncomingBanner());
+    document.getElementById('scanQrBtn').addEventListener('click',            () => this.startQrScan());
+    document.getElementById('stopScanBtn').addEventListener('click',          () => this.stopQrScan());
   }
 
   // ── Modal ─────────────────────────────────────────────────────────
@@ -749,11 +756,13 @@ class AppManager {
   }
 
   closeShareModal() {
+    this.stopQrScan();
     this.els.shareModal.hidden   = true;
     document.body.style.overflow = '';
   }
 
   switchShareTab(activeTab) {
+    if (activeTab.dataset.panel !== 'panelImport') this.stopQrScan();
     this.els.shareModal.querySelectorAll('.share-tab').forEach(t =>
       t.classList.remove('active')
     );
@@ -879,6 +888,77 @@ class AppManager {
     this.vibrate([80, 40, 80]);
     this.closeShareModal();
     this.showToast(`✅ יובאו ${parsed.length} מוצרים`);
+  }
+
+  // ── Chapter 4: QR Camera Scanner ─────────────────────────────
+
+  async startQrScan() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.showToast('❌ המצלמה אינה נתמכת בדפדפן זה');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 } }
+      });
+      this.els.qrVideo.srcObject = stream;
+      await this.els.qrVideo.play();
+      this._scanStream = stream;
+      this._scanActive = true;
+      this.els.qrScanWrapper.hidden = false;
+      this._tickScan();
+    } catch {
+      this.showToast('❌ לא ניתן לגשת למצלמה');
+    }
+  }
+
+  _tickScan() {
+    if (!this._scanActive) return;
+    const video = this.els.qrVideo;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const canvas = this.els.qrCanvas;
+      const ctx    = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      /* global jsQR */
+      const code = typeof jsQR === 'function'
+        ? jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' })
+        : null;
+      if (code) {
+        this.stopQrScan();
+        this.handleScannedQR(code.data);
+        return;
+      }
+    }
+    setTimeout(() => this._tickScan(), 150);
+  }
+
+  stopQrScan() {
+    this._scanActive = false;
+    if (this._scanStream) {
+      this._scanStream.getTracks().forEach(t => t.stop());
+      this._scanStream = null;
+    }
+    if (this.els.qrScanWrapper) this.els.qrScanWrapper.hidden = true;
+  }
+
+  handleScannedQR(data) {
+    try {
+      const url     = new URL(data);
+      const encoded = url.searchParams.get('data');
+      if (!encoded) throw new Error('no data param');
+      const products = this.decodeMagicLink(encoded);
+      if (products.length === 0) throw new Error('empty list');
+      this._pendingImport = products;
+      this.els.incomingCount.textContent = ` — ${products.length} מוצרים`;
+      this.els.incomingBanner.hidden = false;
+      this.closeShareModal();
+      this.vibrate([100, 50, 100]);
+    } catch {
+      this.showToast('❌ קוד QR לא תקין');
+    }
   }
 
   registerServiceWorker() {
