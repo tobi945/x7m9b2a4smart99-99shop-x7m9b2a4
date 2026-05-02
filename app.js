@@ -1,19 +1,13 @@
 'use strict';
 
-/* ================================================================
-   Smart Shop — Vanilla JS PWA
-   OOP Architecture: Product · Category · AppManager
-   ================================================================ */
-
-// ----------------------------------------------------------------
-// Product – represents a single shopping item
-// ----------------------------------------------------------------
+// מחלקת מוצר: שומרת את כל המידע על פריט אחד ברשימה.
 class Product {
-  constructor(id, name, category, isBought = false) {
-    this.id       = id;
-    this.name     = name;
-    this.category = category; // Category ID string
-    this.isBought = isBought;
+  constructor(id, name, category, quantity = 1, isBought = false) {
+    this.id = id;
+    this.name = name;
+    this.category = category;
+    this.quantity = Number.isFinite(Number(quantity)) ? Math.max(1, Number(quantity)) : 1;
+    this.isBought = Boolean(isBought);
   }
 
   toggleStatus() {
@@ -21,401 +15,314 @@ class Product {
   }
 }
 
-// ----------------------------------------------------------------
-// Category – represents a product group
-// ----------------------------------------------------------------
-class Category {
-  constructor(id, name) {
-    this.id   = id;
-    this.name = name;
-  }
-}
-
-// ----------------------------------------------------------------
-// AppManager – main controller (singleton)
-// ----------------------------------------------------------------
+// הבקר הראשי של האפליקציה: נתונים, שמירה, אירועים ורינדור למסך.
 class AppManager {
   constructor() {
-    this.productsList   = [];
-    this.categoriesList = [];
-    this._initDefaultCategories();
-    this.loadData();
-    this._bindEvents();
-    this.renderUI();
-  }
-
-  // ── Default Categories ───────────────────────────────────────
-  _initDefaultCategories() {
-    const defaults = [
-      { id: 'cat_veg',    name: 'פירות וירקות'   },
-      { id: 'cat_dairy',  name: 'מוצרי חלב'      },
-      { id: 'cat_meat',   name: 'בשר ודגים'      },
-      { id: 'cat_bread',  name: 'לחם ומאפים'     },
-      { id: 'cat_canned', name: 'שימורים ויבשים' },
-      { id: 'cat_clean',  name: 'מוצרי ניקיון'   },
-      { id: 'cat_misc',   name: 'שונות'           },
+    this.storageKey = 'smart_shop_products_v1';
+    this.categories = [
+      { id: 'fruits_vegetables', name: 'פירות וירקות', icon: '🥦' },
+      { id: 'dairy_eggs', name: 'חלב וביצים', icon: '🥛' },
+      { id: 'bakery', name: 'לחם ומאפים', icon: '🍞' },
+      { id: 'meat_fish', name: 'בשר ודגים', icon: '🥩' },
+      { id: 'pantry', name: 'מזווה ושימורים', icon: '🥫' },
+      { id: 'cleaning', name: 'ניקיון וטואלטיקה', icon: '🧴' },
+      { id: 'other', name: 'שונות', icon: '📦' },
     ];
-    this.categoriesList = defaults.map(d => new Category(d.id, d.name));
+    this.products = [];
+    this.elements = {};
+
+    this.cacheDom();
+    this.loadData();
+    this.populateCategories();
+    this.bindEvents();
+    this.render();
+    this.registerServiceWorker();
   }
 
-  // ── Data Persistence ─────────────────────────────────────────
-  saveData() {
-    localStorage.setItem('ss_products',   JSON.stringify(this.productsList));
-    localStorage.setItem('ss_categories', JSON.stringify(this.categoriesList));
+  cacheDom() {
+    this.elements.categoriesContainer = document.getElementById('categoriesContainer');
+    this.elements.emptyState = document.getElementById('emptyState');
+    this.elements.summaryStrip = document.getElementById('summaryStrip');
+    this.elements.summaryTotal = document.getElementById('summaryTotal');
+    this.elements.summaryBought = document.getElementById('summaryBought');
+    this.elements.summaryLeft = document.getElementById('summaryLeft');
+    this.elements.shareButton = document.getElementById('shareWhatsAppButton');
+    this.elements.modal = document.getElementById('productModal');
+    this.elements.form = document.getElementById('productForm');
+    this.elements.nameInput = document.getElementById('productName');
+    this.elements.categorySelect = document.getElementById('productCategory');
+    this.elements.quantityInput = document.getElementById('productQuantity');
+  }
+
+  bindEvents() {
+    document.getElementById('openProductModal').addEventListener('click', () => this.openModal());
+    document.getElementById('emptyAddButton').addEventListener('click', () => this.openModal());
+    document.getElementById('closeProductModal').addEventListener('click', () => this.closeModal());
+    document.getElementById('cancelProductButton').addEventListener('click', () => this.closeModal());
+    this.elements.shareButton.addEventListener('click', () => this.openWhatsAppShare());
+
+    this.elements.modal.addEventListener('click', (event) => {
+      if (event.target === this.elements.modal) {
+        this.closeModal();
+      }
+    });
+
+    this.elements.form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.handleProductSubmit();
+    });
+
+    this.elements.categoriesContainer.addEventListener('change', (event) => {
+      const checkbox = event.target.closest('[data-action="toggle-product"]');
+      if (checkbox) {
+        this.toggleProduct(checkbox.dataset.id);
+      }
+    });
+
+    this.elements.categoriesContainer.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('[data-action="delete-product"]');
+      if (deleteButton) {
+        this.deleteProduct(deleteButton.dataset.id);
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !this.elements.modal.hidden) {
+        this.closeModal();
+      }
+    });
+  }
+
+  populateCategories() {
+    this.elements.categorySelect.innerHTML = this.categories
+      .map((category) => `<option value="${this.escapeHtml(category.id)}">${this.escapeHtml(category.name)}</option>`)
+      .join('');
   }
 
   loadData() {
-    const savedCats  = localStorage.getItem('ss_categories');
-    const savedProds = localStorage.getItem('ss_products');
-
-    if (savedCats) {
-      this.categoriesList = JSON.parse(savedCats)
-        .map(c => new Category(c.id, c.name));
-    }
-    if (savedProds) {
-      this.productsList = JSON.parse(savedProds)
-        .map(p => new Product(p.id, p.name, p.category, p.isBought));
+    try {
+      const saved = localStorage.getItem(this.storageKey);
+      const parsed = saved ? JSON.parse(saved) : [];
+      this.products = parsed.map((item) => new Product(
+        item.id,
+        item.name,
+        item.category,
+        item.quantity,
+        item.isBought
+      ));
+    } catch (error) {
+      console.warn('לא ניתן היה לטעון את הרשימה מהדפדפן.', error);
+      this.products = [];
     }
   }
 
-  // ── Products CRUD ─────────────────────────────────────────────
-  addNewProduct(name, categoryId) {
-    if (!name || !categoryId) return;
-    const id = 'prod_' + Date.now();
-    this.productsList.push(new Product(id, name.trim(), categoryId));
-    this.saveData();
-    this.renderUI();
+  saveData() {
+    localStorage.setItem(this.storageKey, JSON.stringify(this.products));
   }
 
-  toggleProduct(id) {
-    const product = this.productsList.find(p => p.id === id);
-    if (!product) return;
-    product.toggleStatus();
+  addProduct(name, category, quantity) {
+    const product = new Product(
+      this.createId(),
+      name.trim(),
+      category,
+      quantity,
+      false
+    );
+
+    this.products.unshift(product);
     this.saveData();
-    this._patchProductDOM(product);
+    this.render();
   }
 
   deleteProduct(id) {
-    this.productsList = this.productsList.filter(p => p.id !== id);
+    this.products = this.products.filter((product) => product.id !== id);
     this.saveData();
-    this.renderUI();
+    this.render();
   }
 
-  clearBought() {
-    this.productsList = this.productsList.filter(p => !p.isBought);
-    this.saveData();
-    this.renderUI();
-  }
-
-  // ── Categories ───────────────────────────────────────────────
-  addNewCategory(name) {
-    const trimmed = name.trim();
-    if (!trimmed) return null;
-    const existing = this.categoriesList.find(c => c.name === trimmed);
-    if (existing) return existing.id;
-    const id = 'cat_' + Date.now();
-    this.categoriesList.push(new Category(id, trimmed));
-    this.saveData();
-    return id;
-  }
-
-  // ── Render (full rebuild) ─────────────────────────────────────
-  renderUI() {
-    const container = document.getElementById('categoriesContainer');
-    const emptyState = document.getElementById('emptyState');
-    const fabBtn     = document.getElementById('fabWhatsApp');
-
-    this._updateProgressBar();
-
-    if (this.productsList.length === 0) {
-      container.innerHTML = '';
-      container.appendChild(emptyState);
-      emptyState.style.display = 'flex';
-      fabBtn.classList.remove('fab--visible');
+  toggleProduct(id) {
+    const product = this.products.find((item) => item.id === id);
+    if (!product) {
       return;
     }
 
-    emptyState.style.display = 'none';
-    fabBtn.classList.add('fab--visible');
-
-    // Group by category (preserve categoriesList order)
-    const groups = [];
-    this.categoriesList.forEach(cat => {
-      const prods = this.productsList.filter(p => p.category === cat.id);
-      if (prods.length > 0) groups.push({ cat, prods });
-    });
-
-    // Orphan products (unknown / deleted category)
-    const knownIds = new Set(this.categoriesList.map(c => c.id));
-    const orphans  = this.productsList.filter(p => !knownIds.has(p.category));
-    if (orphans.length > 0) {
-      groups.push({ cat: new Category('__orphan__', 'שונות'), prods: orphans });
-    }
-
-    // Build HTML
-    const boughtTotal = this.productsList.filter(p => p.isBought).length;
-    const clearBtnHtml = boughtTotal > 0
-      ? `<button class="btn-clear-bought" id="btnClearBought">🗑️ נקה נרכשו (${boughtTotal})</button>`
-      : '';
-
-    container.innerHTML =
-      groups.map(({ cat, prods }) => this._buildCategoryHtml(cat, prods)).join('') +
-      clearBtnHtml;
-
-    this._bindProductEvents();
-    if (boughtTotal > 0) {
-      document.getElementById('btnClearBought')
-        .addEventListener('click', () => this.clearBought());
-    }
+    product.toggleStatus();
+    this.saveData();
+    this.render();
   }
 
-  _buildCategoryHtml(cat, prods) {
-    const bought = prods.filter(p => p.isBought).length;
-    return `
-<section class="cat-section" data-cat-id="${this._esc(cat.id)}">
-  <div class="cat-header">
-    <span class="cat-icon">${this._getCatIcon(cat.name)}</span>
-    <span class="cat-name">${this._esc(cat.name)}</span>
-    <span class="cat-badge">${bought}/${prods.length}</span>
-  </div>
-  <ul class="prod-list">
-    ${prods.map(p => this._buildProductHtml(p)).join('')}
-  </ul>
-</section>`;
-  }
+  handleProductSubmit() {
+    const name = this.elements.nameInput.value.trim();
+    const category = this.elements.categorySelect.value;
+    const quantity = Number(this.elements.quantityInput.value);
 
-  _buildProductHtml(p) {
-    const boughtClass = p.isBought ? ' is-bought' : '';
-    const checked     = p.isBought ? ' checked'   : '';
-    return `
-<li class="prod-item${boughtClass}" data-id="${this._esc(p.id)}">
-  <label class="prod-label">
-    <input class="prod-cb" type="checkbox"${checked} data-id="${this._esc(p.id)}">
-    <span class="prod-name">${this._esc(p.name)}</span>
-  </label>
-  <button class="prod-del" data-id="${this._esc(p.id)}" aria-label="מחק">✕</button>
-</li>`;
-  }
-
-  // ── DOM Patch (toggle without full re-render) ─────────────────
-  _patchProductDOM(product) {
-    const li = document.querySelector(`.prod-item[data-id="${product.id}"]`);
-    if (!li) { this.renderUI(); return; }
-
-    li.classList.toggle('is-bought', product.isBought);
-
-    // Update category badge
-    const section = li.closest('.cat-section');
-    if (section) {
-      const catId    = section.dataset.catId;
-      const catProds = this.productsList.filter(p => p.category === catId);
-      const boughtCnt = catProds.filter(p => p.isBought).length;
-      const badge = section.querySelector('.cat-badge');
-      if (badge) badge.textContent = `${boughtCnt}/${catProds.length}`;
-    }
-
-    this._updateProgressBar();
-
-    // Update / insert / remove clear-bought button
-    const boughtTotal = this.productsList.filter(p => p.isBought).length;
-    const existing = document.getElementById('btnClearBought');
-
-    if (boughtTotal > 0) {
-      if (existing) {
-        existing.innerHTML = `🗑️ נקה נרכשו (${boughtTotal})`;
-      } else {
-        const btn = document.createElement('button');
-        btn.className = 'btn-clear-bought';
-        btn.id        = 'btnClearBought';
-        btn.innerHTML = `🗑️ נקה נרכשו (${boughtTotal})`;
-        btn.addEventListener('click', () => this.clearBought());
-        document.getElementById('categoriesContainer').appendChild(btn);
-      }
-    } else if (existing) {
-      existing.remove();
-    }
-  }
-
-  // ── Progress Bar ─────────────────────────────────────────────
-  _updateProgressBar() {
-    const total  = this.productsList.length;
-    const bought = this.productsList.filter(p => p.isBought).length;
-    const wrap = document.getElementById('progressWrap');
-    const bar  = document.getElementById('progressBar');
-    if (!wrap || !bar) return;
-
-    if (total === 0) { wrap.style.display = 'none'; return; }
-    wrap.style.display = 'block';
-    bar.style.width = `${Math.round((bought / total) * 100)}%`;
-  }
-
-  // ── WhatsApp Summary ──────────────────────────────────────────
-  generateWhatsAppSummary() {
-    if (this.productsList.length === 0) {
-      alert('הרשימה ריקה. הוסף מוצרים תחילה.');
+    if (!name) {
+      this.markInvalid(this.elements.nameInput);
       return;
     }
 
-    const notBought = this.productsList.filter(p => !p.isBought);
-    const bought    = this.productsList.filter(p => p.isBought);
+    if (!category) {
+      this.markInvalid(this.elements.categorySelect);
+      return;
+    }
 
-    const today = new Date().toLocaleDateString('he-IL', {
-      day: 'numeric', month: 'long', year: 'numeric'
-    });
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      this.markInvalid(this.elements.quantityInput);
+      return;
+    }
 
-    let msg = `🛒 *רשימת הקניות שלי*\n📅 ${today}\n`;
+    this.addProduct(name, category, quantity);
+    this.closeModal();
+  }
 
-    if (notBought.length > 0) {
-      msg += '\n📋 *עדיין צריך לקנות:*\n';
-      const knownIds = new Set(this.categoriesList.map(c => c.id));
+  render() {
+    const total = this.products.length;
+    const bought = this.products.filter((product) => product.isBought).length;
+    const left = total - bought;
 
-      this.categoriesList.forEach(cat => {
-        const items = notBought.filter(p => p.category === cat.id);
-        if (items.length === 0) return;
-        msg += `\n📦 _${cat.name}:_\n`;
-        items.forEach(p => { msg += `  ☐ ${p.name}\n`; });
+    this.elements.emptyState.hidden = total > 0;
+    this.elements.summaryStrip.hidden = total === 0;
+    this.elements.shareButton.hidden = total === 0;
+
+    this.elements.summaryTotal.textContent = `${total} ${total === 1 ? 'מוצר' : 'מוצרים'}`;
+    this.elements.summaryBought.textContent = `${bought} נקנו`;
+    this.elements.summaryLeft.textContent = `${left} חסרים`;
+
+    this.elements.categoriesContainer.innerHTML = this.categories
+      .map((category) => this.renderCategory(category))
+      .filter(Boolean)
+      .join('');
+  }
+
+  renderCategory(category) {
+    const products = this.products.filter((product) => product.category === category.id);
+    if (products.length === 0) {
+      return '';
+    }
+
+    const boughtCount = products.filter((product) => product.isBought).length;
+    const itemsHtml = products.map((product) => this.renderProduct(product)).join('');
+
+    return `
+      <article class="category-section">
+        <header class="category-header">
+          <div class="category-title">
+            <span class="category-icon" aria-hidden="true">${category.icon}</span>
+            <span>${this.escapeHtml(category.name)}</span>
+          </div>
+          <span class="category-count">${boughtCount}/${products.length}</span>
+        </header>
+        <ul class="product-list">
+          ${itemsHtml}
+        </ul>
+      </article>
+    `;
+  }
+
+  renderProduct(product) {
+    const checked = product.isBought ? 'checked' : '';
+    const boughtClass = product.isBought ? ' is-bought' : '';
+
+    return `
+      <li class="product-item${boughtClass}">
+        <label class="product-label">
+          <input
+            class="product-checkbox"
+            type="checkbox"
+            data-action="toggle-product"
+            data-id="${this.escapeHtml(product.id)}"
+            ${checked}
+          >
+          <span class="product-text">
+            <span class="product-name">${this.escapeHtml(product.name)}</span>
+            <span class="product-quantity">כמות: ${this.escapeHtml(product.quantity)}</span>
+          </span>
+        </label>
+        <button class="delete-button" type="button" data-action="delete-product" data-id="${this.escapeHtml(product.id)}" aria-label="מחק מוצר">×</button>
+      </li>
+    `;
+  }
+
+  generateWhatsAppText() {
+    const missing = this.products.filter((product) => !product.isBought);
+    const bought = this.products.filter((product) => product.isBought);
+    const lines = ['*רשימת הקניות שלי*'];
+
+    lines.push('', '*חסר לי:*');
+    if (missing.length === 0) {
+      lines.push('הכל נקנה.');
+    } else {
+      missing.forEach((product) => {
+        lines.push(`- ${product.name} (${product.quantity})`);
       });
-
-      // Orphans
-      notBought
-        .filter(p => !knownIds.has(p.category))
-        .forEach(p => { msg += `  ☐ ${p.name}\n`; });
     }
 
-    if (bought.length > 0) {
-      msg += '\n✅ *כבר נקנה:*\n';
-      bought.forEach(p => { msg += `  ✓ ${p.name}\n`; });
-    }
-
-    msg += '\n_נשלח מ-Smart Shop_ 🛒';
-
-    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-  }
-
-  // ── Event Binding ─────────────────────────────────────────────
-  _bindEvents() {
-    document.getElementById('btnOpenModal')
-      .addEventListener('click', () => this._openModal());
-
-    ['modalClose', 'btnCancel'].forEach(id =>
-      document.getElementById(id).addEventListener('click', () => this._closeModal())
-    );
-
-    document.getElementById('modalOverlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) this._closeModal();
-    });
-
-    document.getElementById('btnSave')
-      .addEventListener('click', () => this._handleSave());
-
-    document.getElementById('productName')
-      .addEventListener('keydown', e => { if (e.key === 'Enter') this._handleSave(); });
-
-    document.getElementById('categorySelect').addEventListener('change', e => {
-      document.getElementById('newCategoryGroup').style.display =
-        e.target.value === '__new__' ? 'block' : 'none';
-    });
-
-    document.getElementById('fabWhatsApp')
-      .addEventListener('click', () => this.generateWhatsAppSummary());
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
-    }
-  }
-
-  _bindProductEvents() {
-    document.querySelectorAll('.prod-cb').forEach(cb => {
-      cb.addEventListener('change', e => this.toggleProduct(e.target.dataset.id));
-    });
-
-    document.querySelectorAll('.prod-del').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        if (confirm('למחוק את הפריט?')) {
-          this.deleteProduct(e.currentTarget.dataset.id);
-        }
+    lines.push('', '*כבר קניתי:*');
+    if (bought.length === 0) {
+      lines.push('עדיין לא סומן שום מוצר.');
+    } else {
+      bought.forEach((product) => {
+        lines.push(`- ~${product.name} (${product.quantity})~`);
       });
-    });
-  }
-
-  // ── Modal ─────────────────────────────────────────────────────
-  _openModal() {
-    const sel = document.getElementById('categorySelect');
-    sel.innerHTML = '<option value="">-- בחר קטגוריה --</option>';
-    this.categoriesList.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value       = c.id;
-      opt.textContent = c.name;
-      sel.appendChild(opt);
-    });
-    const newOpt = document.createElement('option');
-    newOpt.value       = '__new__';
-    newOpt.textContent = '+ הוסף קטגוריה חדשה';
-    sel.appendChild(newOpt);
-
-    document.getElementById('productName').value     = '';
-    document.getElementById('newCategoryName').value = '';
-    document.getElementById('newCategoryGroup').style.display = 'none';
-    sel.value = '';
-
-    document.getElementById('modalOverlay').classList.add('is-open');
-    setTimeout(() => document.getElementById('productName').focus(), 150);
-  }
-
-  _closeModal() {
-    document.getElementById('modalOverlay').classList.remove('is-open');
-  }
-
-  _handleSave() {
-    const nameInput    = document.getElementById('productName');
-    const catSel       = document.getElementById('categorySelect');
-    const name = nameInput.value.trim();
-    let   catId = catSel.value;
-
-    if (!name)  { this._shake(nameInput); nameInput.focus(); return; }
-    if (!catId) { this._shake(catSel);    return; }
-
-    if (catId === '__new__') {
-      const newNameInput = document.getElementById('newCategoryName');
-      const newName = newNameInput.value.trim();
-      if (!newName) { this._shake(newNameInput); newNameInput.focus(); return; }
-      catId = this.addNewCategory(newName);
     }
 
-    this.addNewProduct(name, catId);
-    this._closeModal();
+    return lines.join('\n');
   }
 
-  // ── Utilities ─────────────────────────────────────────────────
-  _esc(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+  openWhatsAppShare() {
+    const text = this.generateWhatsAppText();
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
-  _shake(el) {
-    el.classList.add('shake');
-    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+  openModal() {
+    this.elements.form.reset();
+    this.elements.quantityInput.value = '1';
+    this.elements.modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    window.setTimeout(() => this.elements.nameInput.focus(), 50);
   }
 
-  _getCatIcon(name) {
-    const MAP = {
-      'פירות וירקות':   '🥑',
-      'מוצרי חלב':      '🧀',
-      'בשר ודגים':      '🥩',
-      'לחם ומאפים':     '🍞',
-      'שימורים ויבשים': '🥫',
-      'מוצרי ניקיון':   '🧹',
-      'שונות':          '🛒',
-    };
-    return MAP[name] || '📦';
+  closeModal() {
+    this.elements.modal.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  markInvalid(element) {
+    element.classList.remove('shake');
+    void element.offsetWidth;
+    element.classList.add('shake');
+    element.focus();
+  }
+
+  createId() {
+    if (window.crypto && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+
+    return `product_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+
+  escapeHtml(value) {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+
+    navigator.serviceWorker.register('service-worker.js').catch((error) => {
+      console.warn('Service Worker registration failed.', error);
+    });
   }
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  window.app = new AppManager();
+  window.smartShop = new AppManager();
 });

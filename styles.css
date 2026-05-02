@@ -1,369 +1,461 @@
-/* =================================================================
-   Smart Shop — Mobile-First Stylesheet
-   ================================================================= */
-
-/* ── Reset & Variables ─────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
-  --green-dark:  #1B5E20;
-  --green:       #2E7D32;
-  --green-light: #4CAF50;
-  --wa:          #25D366;
-  --wa-dark:     #1da851;
-  --red:         #C62828;
-  --bg:          #F1F3F4;
-  --surface:     #FFFFFF;
-  --text:        #212121;
-  --text-2:      #616161;
-  --border:      #E0E0E0;
-  --shadow-sm:   0 1px 4px rgba(0,0,0,.10);
-  --shadow-md:   0 2px 10px rgba(0,0,0,.14);
-  --shadow-fab:  0 4px 18px rgba(0,0,0,.28);
-  --radius:      12px;
-  --radius-sm:   8px;
-  --ease:        .2s ease;
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --surface-soft: #eef4ee;
+  --text: #18211c;
+  --muted: #607064;
+  --line: #dfe7df;
+  --primary: #1f7a4d;
+  --primary-strong: #135c37;
+  --accent: #f0b429;
+  --danger: #c24132;
+  --whatsapp: #25d366;
+  --shadow: 0 16px 40px rgba(31, 56, 42, 0.16);
+  --radius: 8px;
+  --radius-lg: 18px;
+  --tap: 48px;
 }
 
-/* ── Base ──────────────────────────────────────────────────────── */
-html { font-size: 16px; -webkit-tap-highlight-color: transparent; }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
 
 body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: var(--bg);
+  min-height: 100%;
+  margin: 0;
+  padding: 0 0 96px;
+  background:
+    radial-gradient(circle at top right, rgba(240, 180, 41, 0.16), transparent 28rem),
+    var(--bg);
   color: var(--text);
+  font-family: Arial, "Noto Sans Hebrew", sans-serif;
   direction: rtl;
-  text-align: right;
-  min-height: 100vh;
-  padding-bottom: 90px;
-  -webkit-font-smoothing: antialiased;
 }
 
-/* ── App Header ────────────────────────────────────────────────── */
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: var(--green);
+  z-index: 20;
+  background: linear-gradient(135deg, var(--primary-strong), var(--primary));
   color: #fff;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 10px 28px rgba(19, 92, 55, 0.22);
 }
 
-.header-row {
+.header-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-}
-
-.app-title { font-size: 1.25rem; font-weight: 700; letter-spacing: .3px; }
-
-.btn-add-header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  min-height: 44px;
-  background: rgba(255,255,255,.18);
-  border: 2px solid rgba(255,255,255,.35);
-  border-radius: var(--radius-sm);
-  color: #fff;
-  font-size: .9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--ease);
-  white-space: nowrap;
-}
-.btn-add-header:active { background: rgba(255,255,255,.32); }
-
-/* ── Progress Bar ──────────────────────────────────────────────── */
-.progress-wrap { height: 4px; background: rgba(255,255,255,.2); }
-.progress-bar  { height: 100%; background: #A5D6A7; transition: width .35s ease; width: 0%; }
-
-/* ── Main Content ──────────────────────────────────────────────── */
-.main-content {
-  padding: 14px 14px 0;
-  max-width: 600px;
+  gap: 16px;
+  width: min(720px, 100%);
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  padding: 18px 18px 14px;
 }
 
-/* ── Empty State ───────────────────────────────────────────────── */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 80px 24px;
-  text-align: center;
-  color: var(--text-2);
-}
-.empty-icon  { font-size: 4rem; line-height: 1; }
-.empty-title { font-size: 1.15rem; font-weight: 600; color: var(--text); }
-.empty-hint  { font-size: .875rem; }
-
-/* ── Category Section ──────────────────────────────────────────── */
-.cat-section {
-  background: var(--surface);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
+.eyebrow {
+  margin: 0 0 3px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.76);
 }
 
-.cat-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, var(--green-dark), var(--green));
-  color: #fff;
-  font-weight: 600;
-  font-size: .95rem;
-}
-.cat-icon  { font-size: 1.1rem; }
-.cat-name  { flex: 1; }
-.cat-badge {
-  font-size: .78rem;
-  background: rgba(255,255,255,.22);
-  padding: 2px 9px;
-  border-radius: 12px;
-  font-weight: 600;
+h1,
+h2,
+p {
+  margin: 0;
 }
 
-/* ── Products List ─────────────────────────────────────────────── */
-.prod-list { list-style: none; }
-
-.prod-item {
-  display: flex;
-  align-items: center;
-  padding: 0 10px 0 6px;
-  border-bottom: 1px solid var(--border);
-  min-height: 52px;
-  background: var(--surface);
-  transition: background var(--ease);
-}
-.prod-item:last-child { border-bottom: none; }
-.prod-item:active     { background: #F5F5F5; }
-
-.prod-label {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  padding: 14px 0;
+h1 {
+  font-size: 1.55rem;
+  line-height: 1.1;
 }
 
-.prod-cb {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  cursor: pointer;
-  accent-color: var(--green);
-}
-
-.prod-name {
-  font-size: 1rem;
-  line-height: 1.4;
-  transition: color var(--ease);
-}
-
-.prod-item.is-bought .prod-name {
-  text-decoration: line-through;
-  color: #BDBDBD;
-}
-
-.prod-del {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: #ccc;
-  font-size: .82rem;
-  cursor: pointer;
+.icon-button,
+.close-button {
+  display: inline-grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
   border-radius: 50%;
-  transition: color var(--ease), background var(--ease);
 }
-.prod-del:hover, .prod-del:active { color: var(--red); background: #FFEBEE; }
 
-/* ── Clear Bought Button ───────────────────────────────────────── */
-.btn-clear-bought {
-  display: block;
-  width: 100%;
-  margin-top: 4px;
-  padding: 13px 16px;
-  background: #FFFDE7;
-  border: 1.5px dashed #FDD835;
-  border-radius: var(--radius);
-  color: #F57F17;
-  font-size: .9rem;
-  font-weight: 700;
-  cursor: pointer;
+.icon-button {
+  background: #fff;
+  color: var(--primary);
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  width: min(720px, 100%);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.16);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.summary-strip span {
+  padding: 10px 8px;
   text-align: center;
-  transition: background var(--ease);
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.06);
 }
-.btn-clear-bought:active { background: #FFF176; }
 
-/* ── FAB: WhatsApp Button ──────────────────────────────────────── */
-.fab-btn {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%) translateY(110px);
+.app-shell {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 64px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  font-size: 2.4rem;
+}
+
+.empty-state h2 {
+  color: var(--text);
+  font-size: 1.25rem;
+}
+
+.categories {
+  display: grid;
+  gap: 14px;
+}
+
+.category-section {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgba(35, 50, 40, 0.08);
+}
+
+.category-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 26px;
-  height: 56px;
-  background: var(--wa);
-  color: #fff;
-  border: none;
-  border-radius: 28px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-fab);
-  transition: transform .35s cubic-bezier(.34,1.56,.64,1), background var(--ease);
-  z-index: 200;
-  white-space: nowrap;
-  user-select: none;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--line);
 }
-.fab-btn.fab--visible { transform: translateX(-50%) translateY(0); }
-.fab-btn:active       { background: var(--wa-dark); }
-.fab-icon             { font-size: 1.25rem; }
 
-/* ── Modal Overlay ─────────────────────────────────────────────── */
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.category-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.category-count {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.product-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-item {
+  display: grid;
+  grid-template-columns: 1fr var(--tap);
+  align-items: stretch;
+  min-height: 64px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.product-item:last-child {
+  border-bottom: 0;
+}
+
+.product-label {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.product-checkbox {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.product-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.product-name {
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.product-quantity {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.product-item.is-bought {
+  background: #f7f8f7;
+}
+
+.product-item.is-bought .product-name,
+.product-item.is-bought .product-quantity {
+  color: #98a29a;
+  text-decoration: line-through;
+}
+
+.delete-button {
+  align-self: center;
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9aa69d;
+  font-size: 1.35rem;
+}
+
+.delete-button:active {
+  background: #fee8e4;
+  color: var(--danger);
+}
+
+.primary-button,
+.secondary-button {
+  min-height: var(--tap);
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.primary-button {
+  background: var(--primary);
+  color: #fff;
+}
+
+.secondary-button {
+  background: #edf1ed;
+  color: var(--text);
+}
+
+.whatsapp-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 18px;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 58px;
+  max-width: calc(100% - 32px);
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--whatsapp);
+  color: #073b1d;
+  font-weight: 900;
+  box-shadow: var(--shadow);
+}
+
+.whatsapp-fab span:first-child {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.42);
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0);
-  z-index: 300;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  pointer-events: none;
-  transition: background .25s ease;
-}
-.modal-overlay.is-open {
-  background: rgba(0,0,0,.5);
-  pointer-events: all;
+  z-index: 30;
+  display: grid;
+  align-items: end;
+  background: rgba(8, 18, 12, 0.48);
 }
 
-/* ── Modal Sheet ───────────────────────────────────────────────── */
-.modal {
+.modal-sheet {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  border-radius: 22px 22px 0 0;
   background: var(--surface);
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-width: 600px;
-  transform: translateY(100%);
-  transition: transform .3s cubic-bezier(.34,1.26,.64,1);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-shadow: var(--shadow);
 }
-.modal-overlay.is-open .modal { transform: translateY(0); }
 
 .modal-handle {
-  width: 40px;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  margin: 10px auto 0;
+  width: 46px;
+  height: 5px;
+  margin: 10px auto 4px;
+  border-radius: 999px;
+  background: var(--line);
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px 12px;
-  border-bottom: 1px solid var(--border);
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
 }
-.modal-header h2 { font-size: 1.1rem; font-weight: 700; }
 
-.modal-close {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  border: none;
-  border-radius: 50%;
-  font-size: .95rem;
-  color: var(--text-2);
-  cursor: pointer;
-  transition: background var(--ease);
+.modal-header h2 {
+  font-size: 1.18rem;
 }
-.modal-close:active { background: var(--border); }
 
-.modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+.close-button {
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 1.45rem;
+}
 
-/* ── Form Elements ─────────────────────────────────────────────── */
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: .82rem; font-weight: 600; color: var(--text-2); }
+.product-form {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
 
-.form-group input,
-.form-group select {
-  padding: 12px 14px;
-  min-height: 48px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
+.field {
+  display: grid;
+  gap: 7px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 13px;
+  background: #fbfcfb;
   color: var(--text);
-  background: var(--bg);
-  direction: rtl;
-  transition: border-color var(--ease), background var(--ease);
   outline: none;
-  -webkit-appearance: none;
-  appearance: none;
 }
-.form-group input:focus,
-.form-group select:focus { border-color: var(--green); background: #fff; }
 
-/* ── Animations ────────────────────────────────────────────────── */
+.field input:focus,
+.field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 122, 77, 0.14);
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.shake {
+  animation: shake 0.28s ease;
+}
+
 @keyframes shake {
-  0%,100% { transform: translateX(0); }
-  20%,60%  { transform: translateX(-5px); }
-  40%,80%  { transform: translateX(5px); }
-}
-.shake { animation: shake .35s ease; border-color: var(--red) !important; }
-
-/* ── Modal Footer ──────────────────────────────────────────────── */
-.modal-footer { display: flex; gap: 10px; padding: 12px 20px 24px; }
-
-.btn-cancel, .btn-save {
-  flex: 1;
-  min-height: 50px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: filter var(--ease);
-}
-.btn-cancel { background: var(--bg); color: var(--text-2); border: 2px solid var(--border); }
-.btn-save   { background: var(--green); color: #fff; }
-.btn-cancel:active, .btn-save:active { filter: brightness(.92); }
-
-/* ── Desktop Breakpoint ────────────────────────────────────────── */
-@media (min-width: 520px) {
-  .modal-overlay { align-items: center; }
-  .modal { border-radius: var(--radius); width: calc(100% - 32px); max-width: 420px; }
-}
-
-/* ── Dark Mode ─────────────────────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:      #121212;
-    --surface: #1E1E1E;
-    --text:    #E0E0E0;
-    --text-2:  #9E9E9E;
-    --border:  #333333;
+  0%,
+  100% {
+    transform: translateX(0);
   }
-  .prod-item:active { background: #2A2A2A; }
+
+  33% {
+    transform: translateX(-5px);
+  }
+
+  66% {
+    transform: translateX(5px);
+  }
+}
+
+@media (min-width: 620px) {
+  body {
+    padding-bottom: 112px;
+  }
+
+  .app-shell {
+    padding-top: 22px;
+  }
+
+  .modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-sheet {
+    border-radius: var(--radius-lg);
+  }
+
+  .whatsapp-fab {
+    right: calc(50% - 344px);
+  }
 }

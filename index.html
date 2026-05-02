@@ -2,76 +2,84 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#2E7D32">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1f7a4d">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Smart Shop">
+  <meta name="description" content="רשימת קניות חכמה עם שמירה מקומית ושיתוף לוואטסאפ">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
-  <title>Smart Shop 🛒</title>
   <link rel="stylesheet" href="styles.css">
+  <title>Smart Shop</title>
 </head>
 <body>
-
-  <!-- ── App Header ───────────────────────────────── -->
   <header class="app-header">
-    <div class="header-row">
-      <h1 class="app-title">🛒 Smart Shop</h1>
-      <button class="btn-add-header" id="btnOpenModal">+ הוסף פריט</button>
+    <div class="header-main">
+      <div>
+        <p class="eyebrow">רשימת קניות אישית</p>
+        <h1>Smart Shop</h1>
+      </div>
+      <button class="icon-button" id="openProductModal" type="button" aria-label="הוסף מוצר">
+        <span aria-hidden="true">+</span>
+      </button>
     </div>
-    <div class="progress-wrap" id="progressWrap" style="display:none">
-      <div class="progress-bar" id="progressBar"></div>
+
+    <div class="summary-strip" id="summaryStrip" hidden>
+      <span id="summaryTotal">0 מוצרים</span>
+      <span id="summaryBought">0 נקנו</span>
+      <span id="summaryLeft">0 חסרים</span>
     </div>
   </header>
 
-  <!-- ── Main Content ─────────────────────────────── -->
-  <main class="main-content" id="categoriesContainer">
-    <div class="empty-state" id="emptyState">
-      <span class="empty-icon">🛍️</span>
-      <p class="empty-title">הרשימה ריקה</p>
-      <p class="empty-hint">לחץ על "הוסף פריט" כדי להתחיל</p>
-    </div>
+  <main class="app-shell">
+    <section class="empty-state" id="emptyState">
+      <div class="empty-icon" aria-hidden="true">🛒</div>
+      <h2>הרשימה ריקה</h2>
+      <p>הוסף מוצר ראשון כדי להתחיל לבנות את הקנייה.</p>
+      <button class="primary-button" id="emptyAddButton" type="button">הוסף מוצר</button>
+    </section>
+
+    <section class="categories" id="categoriesContainer" aria-live="polite"></section>
   </main>
 
-  <!-- ── FAB: WhatsApp ─────────────────────────────── -->
-  <button class="fab-btn" id="fabWhatsApp" aria-label="שלח לוואטסאפ">
-    <span class="fab-icon">📲</span>
-    <span class="fab-text">שלח לוואטסאפ</span>
+  <button class="whatsapp-fab" id="shareWhatsAppButton" type="button" aria-label="שתף רשימת קניות בוואטסאפ" hidden>
+    <span aria-hidden="true">↗</span>
+    <span>שלח לוואטסאפ</span>
   </button>
 
-  <!-- ── Add Product Modal ─────────────────────────── -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-handle"></div>
-      <div class="modal-header">
-        <h2 id="modalTitle">הוסף פריט חדש</h2>
-        <button class="modal-close" id="modalClose" aria-label="סגור">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="productName">שם המוצר</label>
-          <input type="text" id="productName"
-                 placeholder="לדוגמה: חלב, לחם, עגבניות..."
-                 autocomplete="off" inputmode="text">
-        </div>
-        <div class="form-group">
-          <label for="categorySelect">קטגוריה</label>
-          <select id="categorySelect"></select>
-        </div>
-        <div class="form-group" id="newCategoryGroup" style="display:none">
-          <label for="newCategoryName">שם הקטגוריה החדשה</label>
-          <input type="text" id="newCategoryName"
-                 placeholder="לדוגמה: מוצרי ספורט..." autocomplete="off">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" id="btnCancel">ביטול</button>
-        <button class="btn-save" id="btnSave">הוסף ✓</button>
-      </div>
-    </div>
+  <div class="modal-overlay" id="productModal" role="presentation" hidden>
+    <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <header class="modal-header">
+        <h2 id="modalTitle">הוספת מוצר</h2>
+        <button class="close-button" id="closeProductModal" type="button" aria-label="סגור">×</button>
+      </header>
+
+      <form class="product-form" id="productForm">
+        <label class="field">
+          <span>שם המוצר</span>
+          <input id="productName" name="name" type="text" autocomplete="off" placeholder="לדוגמה: חלב, לחם, עגבניות" required>
+        </label>
+
+        <label class="field">
+          <span>קטגוריה</span>
+          <select id="productCategory" name="category" required></select>
+        </label>
+
+        <label class="field">
+          <span>כמות</span>
+          <input id="productQuantity" name="quantity" type="number" min="1" step="1" value="1" inputmode="numeric" required>
+        </label>
+
+        <footer class="form-actions">
+          <button class="secondary-button" id="cancelProductButton" type="button">ביטול</button>
+          <button class="primary-button" type="submit">הוסף לרשימה</button>
+        </footer>
+      </form>
+    </section>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
