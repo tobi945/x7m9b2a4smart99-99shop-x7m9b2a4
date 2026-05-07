@@ -1180,3 +1180,275 @@ body.focus-mode .whatsapp-fab {
   .preview-chip   { background: #1f2d28; border-color: var(--line); }
   .copy-btn:active { background: #1c3327; }
 }
+
+/* ================================================================
+   פרק 5: App Lock · Settings · OTA · Splash
+   ================================================================ */
+
+/* ── מסך נעילה ────────────────────────────────────────────────── */
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #0d4d2c 0%, #1f7a4d 45%, #2ea862 100%);
+  transition: opacity 0.35s, transform 0.35s;
+}
+
+.lock-screen[hidden] { display: none; }
+
+.lock-screen.lock-unlocking {
+  opacity: 0;
+  transform: scale(1.08);
+  pointer-events: none;
+}
+
+.lock-inner {
+  text-align: center;
+  color: #fff;
+  width: 280px;
+}
+
+.lock-logo {
+  font-size: 2.8rem;
+  margin-bottom: 6px;
+  animation: lockPulse 2s ease-in-out infinite;
+}
+
+@keyframes lockPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+.lock-title {
+  margin: 0 0 2px;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.lock-subtitle {
+  margin: 0 0 22px;
+  opacity: 0.75;
+  font-size: 0.92rem;
+}
+
+/* נקודות PIN */
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+
+.pin-dot.filled {
+  background: #fff;
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+/* לוח מספרים */
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.pin-pad button {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pin-pad button:active {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.pin-pad-empty {
+  visibility: hidden;
+}
+
+.lock-error {
+  color: #ff6b6b;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 16px 0 0;
+}
+
+.lock-hint {
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+  opacity: 0.45;
+}
+
+.lock-forgot {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.78rem;
+  text-decoration: underline;
+}
+
+/* ── כפתור הגדרות (גלגל שיניים) ──────────────────────────────── */
+.settings-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+  vertical-align: middle;
+  padding: 2px 4px;
+  border-radius: 50%;
+  transition: color 0.15s;
+}
+
+.settings-gear:active { color: #fff; }
+
+/* ── הגדרות — תוכן ───────────────────────────────────────────── */
+.settings-content {
+  padding: 6px 18px 22px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.setting-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.setting-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0 0;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #c5cfc8;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.toggle input:checked + .toggle-track {
+  background: var(--primary);
+}
+
+.toggle input:checked + .toggle-track::before {
+  transform: translateX(22px);
+}
+
+/* ── באנר עדכון ───────────────────────────────────────────────── */
+.update-toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #1a2e23;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.update-toast[hidden] { display: flex; }   /* stay in layout for transition */
+.update-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.update-toast button {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Dark mode — Chapter 5 additions */
+@media (prefers-color-scheme: dark) {
+  .setting-row     { border-color: var(--line); }
+  .toggle-track    { background: #2a3d32; }
+  .settings-content input { background: #1f2d28; color: var(--text); border-color: var(--line); }
+  .update-toast    { background: #e8f0ea; color: #18211c; }
+  .update-toast button { background: var(--primary-strong); color: #fff; }
+}

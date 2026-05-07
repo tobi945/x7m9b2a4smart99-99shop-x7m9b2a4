@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1f7a4d">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Smart Shop">
   <meta name="description" content="רשימת קניות חכמה עם שמירה מקומית ושיתוף לוואטסאפ">
   <link rel="manifest" href="manifest.json">
@@ -15,12 +15,44 @@
 </head>
 <body>
 
+  <!-- ── מסך נעילה (מוצג כברירת מחדל) ─────────────── -->
+  <div id="lockScreen" class="lock-screen" role="dialog" aria-modal="true" aria-label="נעילת אפליקציה">
+    <div class="lock-inner" id="lockInner">
+      <div class="lock-logo" aria-hidden="true">🔒</div>
+      <h2 class="lock-title">Smart Shop</h2>
+      <p class="lock-subtitle">הזן קוד PIN</p>
+      <div class="pin-dots" id="pinDots">
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+      </div>
+      <div class="pin-pad" id="pinPad">
+        <button type="button" data-digit="1">1</button>
+        <button type="button" data-digit="2">2</button>
+        <button type="button" data-digit="3">3</button>
+        <button type="button" data-digit="4">4</button>
+        <button type="button" data-digit="5">5</button>
+        <button type="button" data-digit="6">6</button>
+        <button type="button" data-digit="7">7</button>
+        <button type="button" data-digit="8">8</button>
+        <button type="button" data-digit="9">9</button>
+        <button type="button" class="pin-pad-empty" disabled aria-hidden="true"></button>
+        <button type="button" data-digit="0">0</button>
+        <button type="button" data-digit="del" aria-label="מחק ספרה">⌫</button>
+      </div>
+      <p class="lock-error" id="lockError" hidden>קוד שגוי, נסה שוב</p>
+      <p class="lock-hint" id="lockHint">קוד ברירת מחדל: 1234</p>
+      <button class="lock-forgot" id="forgotPinBtn" type="button">שכחת קוד?</button>
+    </div>
+  </div>
+
   <!-- ── כותרת ─────────────────────────────────────── -->
   <header class="app-header">
     <div class="header-main">
       <div>
         <p class="eyebrow">רשימת קניות אישית</p>
-        <h1>Smart Shop</h1>
+        <h1>Smart Shop <button class="settings-gear" id="openSettings" type="button" aria-label="הגדרות">⚙</button></h1>
       </div>
       <div class="header-actions">
         <!-- כפתור מצב סופר -->
@@ -203,6 +235,40 @@
         <button class="secondary-button small" id="incomingDenyBtn" type="button">✕ דחה</button>
       </div>
     </div>
+  </div>
+
+  <!-- ── מודאל: הגדרות ─────────────────────────────────── -->
+  <div class="modal-overlay" id="settingsModal" role="presentation" hidden>
+    <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <header class="modal-header">
+        <h2 id="settingsTitle">הגדרות</h2>
+        <button class="close-button" id="closeSettings" type="button" aria-label="סגור">×</button>
+      </header>
+      <div class="settings-content">
+        <div class="setting-row">
+          <span class="setting-label">🔒 נעילת אפליקציה (PIN)</span>
+          <label class="toggle">
+            <input type="checkbox" id="lockToggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="setting-section" id="changePinSection">
+          <label class="field">
+            <span>קוד PIN חדש (4 ספרות)</span>
+            <input id="newPinInput" type="password" inputmode="numeric"
+                   maxlength="4" pattern="\d{4}" placeholder="····" autocomplete="off">
+          </label>
+          <button class="primary-button" id="savePinBtn" type="button">💾 שמור קוד חדש</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── באנר עדכון גרסה ────────────────────────────────── -->
+  <div class="update-toast" id="updateToast" hidden>
+    <span>🔄 גרסה חדשה זמינה!</span>
+    <button id="updateBtn" type="button">רענן כעת</button>
   </div>
 
   <!-- ── Toast: ביטול מחיקה ────────────────────────────── -->

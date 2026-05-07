@@ -1,10 +1,11 @@
 'use strict';
 
 /* ================================================================
-   Smart Shop v4
+   Smart Shop v5 — Final
    Ch2: Price · Priority · Budget · Focus Mode · Autocomplete
    Ch3: Swipe · Undo Toast · Vibration · Wake Lock · Confetti · Audio
    Ch4: Magic Link · QR Generate/Scan · WhatsApp Import · Dark Mode
+   Ch5: App Lock (PIN) · Settings · OTA Updates · Offline-First SW
    ================================================================ */
 
 const CATEGORIES = [
@@ -51,8 +52,17 @@ class AppManager {
     this._pendingImport      = null;   // products decoded from incoming magic link
     this._scanStream         = null;   // MediaStream from camera
     this._scanActive         = false;  // QR scan loop running
+    this._pinBuffer          = '';
+    this._lockEnabled        = false;
+    this._pinHash            = null;
+    this._swReg              = null;   // ServiceWorkerRegistration
 
     this.cacheDom();
+    // Quick sync check — hide lock screen immediately if user disabled it
+    if (localStorage.getItem('smart_shop_lock_enabled') === 'false') {
+      this.els.lockScreen.hidden = true;
+    }
+    this.initLock();   // async — sets up PIN hash, shows/hides hint
     this.loadData();
     this.loadHistory();
     this.populateCategories();
@@ -101,6 +111,18 @@ class AppManager {
       qrScanWrapper:  document.getElementById('qrScanWrapper'),
       qrVideo:        document.getElementById('qrVideo'),
       qrCanvas:       document.getElementById('qrCanvas'),
+      // Chapter 5
+      lockScreen:      document.getElementById('lockScreen'),
+      lockInner:       document.getElementById('lockInner'),
+      pinDots:         document.getElementById('pinDots'),
+      pinPad:          document.getElementById('pinPad'),
+      lockError:       document.getElementById('lockError'),
+      lockHint:        document.getElementById('lockHint'),
+      settingsModal:   document.getElementById('settingsModal'),
+      lockToggle:      document.getElementById('lockToggle'),
+      newPinInput:     document.getElementById('newPinInput'),
+      changePinSection: document.getElementById('changePinSection'),
+      updateToast:     document.getElementById('updateToast'),
     };
   }
 
@@ -597,8 +619,9 @@ class AppManager {
 
     document.addEventListener('keydown', e => {
       if (e.key !== 'Escape') return;
-      if (!this.els.modal.hidden)       this.closeModal();
-      else if (!this.els.shareModal.hidden) this.closeShareModal();
+      if (!this.els.modal.hidden)            this.closeModal();
+      else if (!this.els.shareModal.hidden)    this.closeShareModal();
+      else if (!this.els.settingsModal.hidden) this.closeSettingsModal();
     });
 
     // Re-request Wake Lock if page becomes visible again
@@ -626,6 +649,21 @@ class AppManager {
     document.getElementById('incomingDenyBtn').addEventListener('click',      () => this.dismissIncomingBanner());
     document.getElementById('scanQrBtn').addEventListener('click',            () => this.startQrScan());
     document.getElementById('stopScanBtn').addEventListener('click',          () => this.stopQrScan());
+
+    // ── Chapter 5: Lock screen + Settings + OTA ───────────────────
+    this.els.pinPad.addEventListener('click', e => {
+      const btn = e.target.closest('[data-digit]');
+      if (btn) this.handlePinDigit(btn.dataset.digit);
+    });
+    document.getElementById('forgotPinBtn').addEventListener('click', () => this.handleForgotPin());
+    document.getElementById('openSettings').addEventListener('click',  () => this.openSettingsModal());
+    document.getElementById('closeSettings').addEventListener('click', () => this.closeSettingsModal());
+    this.els.settingsModal.addEventListener('click', e => {
+      if (e.target === this.els.settingsModal) this.closeSettingsModal();
+    });
+    this.els.lockToggle.addEventListener('change', () => this.handleLockToggle());
+    document.getElementById('savePinBtn').addEventListener('click', () => this.handleSavePin());
+    document.getElementById('updateBtn').addEventListener('click',  () => this.handleUpdate());
   }
 
   // ── Modal ─────────────────────────────────────────────────────────
@@ -960,10 +998,179 @@ class AppManager {
     }
   }
 
-  registerServiceWorker() {
+  // ── Chapter 5: App Lock ────────────────────────────────────────
+
+  async initLock() {
+    const enabled = localStorage.getItem('smart_shop_lock_enabled');
+    const hash    = localStorage.getItem('smart_shop_pin_hash');
+
+    if (enabled === null) {
+      // First launch — lock ON, default PIN 1234
+      this._lockEnabled = true;
+      localStorage.setItem('smart_shop_lock_enabled', 'true');
+      this._pinHash = await this.hashPin('1234');
+      localStorage.setItem('smart_shop_pin_hash', this._pinHash);
+    } else {
+      this._lockEnabled = enabled === 'true';
+      this._pinHash = hash;
+    }
+
+    if (!this._lockEnabled) {
+      this.els.lockScreen.hidden = true;
+    }
+
+    const isCustom = localStorage.getItem('smart_shop_pin_custom') === 'true';
+    if (this.els.lockHint) this.els.lockHint.hidden = isCustom;
+  }
+
+  async hashPin(pin) {
+    const str = 'smart_shop_' + pin;
+    if (crypto?.subtle) {
+      const data = new TextEncoder().encode(str);
+      const buf  = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    // Fallback for non-secure contexts (local file, HTTP)
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    return 'f' + Math.abs(h).toString(16).padStart(8, '0');
+  }
+
+  handlePinDigit(digit) {
+    this.els.lockError.hidden = true;
+    if (digit === 'del') {
+      this._pinBuffer = this._pinBuffer.slice(0, -1);
+      this.updatePinDots();
+      return;
+    }
+    if (this._pinBuffer.length >= 4) return;
+    this._pinBuffer += digit;
+    this.updatePinDots();
+    this.vibrate([15]);
+
+    if (this._pinBuffer.length === 4) this.validatePin();
+  }
+
+  updatePinDots() {
+    this.els.pinDots.querySelectorAll('.pin-dot').forEach((dot, i) => {
+      dot.classList.toggle('filled', i < this._pinBuffer.length);
+    });
+  }
+
+  async validatePin() {
+    const hash = await this.hashPin(this._pinBuffer);
+    if (hash === this._pinHash) {
+      this.unlockApp();
+    } else {
+      this.els.lockError.hidden = false;
+      this.els.lockInner.classList.add('shake');
+      setTimeout(() => this.els.lockInner.classList.remove('shake'), 500);
+      this._pinBuffer = '';
+      this.updatePinDots();
+      this.vibrate([100, 50, 100]);
+    }
+  }
+
+  unlockApp() {
+    this.els.lockScreen.classList.add('lock-unlocking');
+    this.vibrate([50]);
+    setTimeout(() => {
+      this.els.lockScreen.hidden = true;
+      this.els.lockScreen.classList.remove('lock-unlocking');
+      this._pinBuffer = '';
+      this.updatePinDots();
+    }, 350);
+  }
+
+  handleForgotPin() {
+    if (confirm('פעולה זו תמחק את כל הנתונים ותאפס את הקוד ל-1234.\nלהמשיך?')) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  }
+
+  // ── Chapter 5: Settings ──────────────────────────────────────
+
+  openSettingsModal() {
+    this.els.lockToggle.checked = this._lockEnabled;
+    this.els.newPinInput.value  = '';
+    this.els.changePinSection.hidden = !this._lockEnabled;
+    this.els.settingsModal.hidden    = false;
+    document.body.style.overflow     = 'hidden';
+  }
+
+  closeSettingsModal() {
+    this.els.settingsModal.hidden = true;
+    document.body.style.overflow  = '';
+  }
+
+  handleLockToggle() {
+    this._lockEnabled = this.els.lockToggle.checked;
+    localStorage.setItem('smart_shop_lock_enabled', String(this._lockEnabled));
+    this.els.changePinSection.hidden = !this._lockEnabled;
+  }
+
+  async handleSavePin() {
+    const pin = this.els.newPinInput.value;
+    if (!/^\d{4}$/.test(pin)) {
+      this.markInvalid(this.els.newPinInput);
+      return;
+    }
+    this._pinHash = await this.hashPin(pin);
+    localStorage.setItem('smart_shop_pin_hash', this._pinHash);
+    localStorage.setItem('smart_shop_pin_custom', 'true');
+    if (this.els.lockHint) this.els.lockHint.hidden = true;
+    this.showToast('✅ קוד PIN עודכן');
+    this.els.newPinInput.value = '';
+  }
+
+  // ── Chapter 5: OTA + Service Worker ──────────────────────────
+
+  async registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('service-worker.js')
-      .catch(err => console.warn('SW error', err));
+    try {
+      const reg = await navigator.serviceWorker.register('service-worker.js');
+      this._swReg = reg;
+
+      // Already-waiting worker from a previous visit
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        this.showUpdateBanner();
+      }
+
+      // New worker just installed
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            this.showUpdateBanner();
+          }
+        });
+      });
+
+      // When new SW activates → reload page
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    } catch (err) {
+      console.warn('SW error', err);
+    }
+  }
+
+  showUpdateBanner() {
+    const toast = this.els.updateToast;
+    if (!toast) return;
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('visible'));
+  }
+
+  handleUpdate() {
+    if (this._swReg?.waiting) {
+      this._swReg.waiting.postMessage('skipWaiting');
+    }
   }
 }
 

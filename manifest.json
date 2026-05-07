@@ -1,15 +1,16 @@
 {
   "name": "Smart Shop - רשימת קניות חכמה",
   "short_name": "Smart Shop",
-  "description": "רשימת קניות אישית עם כמויות, שמירה מקומית ושיתוף לוואטסאפ.",
+  "description": "רשימת קניות אישית עם שיתוף, QR, נעילה ועבודה אופליין.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "dir": "rtl",
   "lang": "he",
-  "background_color": "#f4f6f3",
+  "background_color": "#135c37",
   "theme_color": "#1f7a4d",
+  "categories": ["shopping", "productivity"],
   "icons": [
     {
       "src": "icons/icon-192.svg",
