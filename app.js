@@ -1,9 +1,10 @@
 'use strict';
 
 /* ================================================================
-   Smart Shop v3 — Chapter 3: Premium UX
-   Features added: Swipe gestures · Undo toast · Vibration API
-                   Wake Lock · Confetti · Web Audio · Dark Mode
+   Smart Shop v4
+   Ch2: Price · Priority · Budget · Focus Mode · Autocomplete
+   Ch3: Swipe · Undo Toast · Vibration · Wake Lock · Confetti · Audio
+   Ch4: Magic Link · QR Generate/Scan · WhatsApp Import · Dark Mode
    ================================================================ */
 
 const CATEGORIES = [
@@ -56,6 +57,7 @@ class AppManager {
     this.loadHistory();
     this.populateCategories();
     this.bindEvents();
+    this.setupSwipes();
     this.render();
     this.checkIncomingLink();
     this.registerServiceWorker();
@@ -157,6 +159,7 @@ class AppManager {
       quantity, false, price, priority, unit
     ));
     this.addToHistory(name);
+    this._lastAllBought = false;
     this.saveData();
     this.render();
     this.playClick();
@@ -172,13 +175,7 @@ class AppManager {
     this.checkCompletion();
   }
 
-  deleteProduct(id) {
-    this.products = this.products.filter(p => p.id !== id);
-    this.saveData();
-    this.render();
-  }
-
-  /** מחיקה עם אפשרות ביטול (3 שניות) */
+  /** מחיקה עם אפשרות ביטול (3.5 שניות) */
   deleteProductWithUndo(id) {
     const product = this.products.find(p => p.id === id);
     if (!product) return;
@@ -244,8 +241,6 @@ class AppManager {
       .map(cat => this.renderCategory(cat))
       .filter(Boolean)
       .join('');
-
-    this.setupSwipes();
   }
 
   renderCategory(category) {
@@ -694,13 +689,15 @@ class AppManager {
     const json = decodeURIComponent(escape(atob(decodeURIComponent(raw))));
     const arr  = JSON.parse(json);
     if (!Array.isArray(arr)) throw new Error('invalid');
-    return arr.map(([name, category, quantity, unit, price, priority]) =>
-      new Product(
-        this.createId(), String(name || ''), String(category || 'other'),
+    const validCats = new Set(CATEGORIES.map(c => c.id));
+    return arr.map(([name, category, quantity, unit, price, priority]) => {
+      const cat = validCats.has(category) ? category : 'other';
+      return new Product(
+        this.createId(), String(name || ''), cat,
         Number(quantity) || 1, false,
         Number(price) || 0, Number(priority) || 0, String(unit || '')
-      )
-    );
+      );
+    });
   }
 
   checkIncomingLink() {
@@ -726,6 +723,7 @@ class AppManager {
       this.addToHistory(p.name);
     });
     this._pendingImport = null;
+    this._lastAllBought = false;
     this.els.incomingBanner.hidden = true;
     this.saveData();
     this.render();
@@ -883,6 +881,7 @@ class AppManager {
       this.products.unshift(new Product(this.createId(), name, category, quantity));
       this.addToHistory(name);
     });
+    this._lastAllBought = false;
     this.saveData();
     this.render();
     this.vibrate([80, 40, 80]);
